@@ -8,15 +8,15 @@ def run_prodigal(dna_path, protein_path):
         "prodigal",
         "-i", dna_path,
         "-a", protein_path,
-        "-p", "meta",  # 用于宏基因组或无注释基因组
-        "-q"  # 静默运行
+        "-p", "meta",  # For metagenomics or unannotated genomes
+        "-q"  # Silent operation
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
-        print(f"❌ Prodigal 失败: {dna_path}")
+        print(f"❌ Prodigal failed: {dna_path}")
         print(result.stderr)
     else:
-        print(f"✅ Prodigal 转换完成: {os.path.basename(protein_path)}")
+        print(f"✅ Prodigal Conversion complete: {os.path.basename(protein_path)}")
 
 def run_hmmsearch(hmm_model, protein_file, output_file):
     cmd = [
@@ -28,10 +28,10 @@ def run_hmmsearch(hmm_model, protein_file, output_file):
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
-        print(f"❌ hmmsearch 失败: {protein_file}")
+        print(f"❌ hmmsearch failed: {protein_file}")
         print(result.stderr)
     else:
-        print(f"✅ HMM 搜索完成: {os.path.basename(protein_file)}")
+        print(f"✅ HMM search complete: {os.path.basename(protein_file)}")
 
 def main():
     hmm_model = "BaiE/BaiE_final.hmm"
@@ -48,13 +48,13 @@ def main():
             protein_path = os.path.join(protein_dir, sample + ".faa")
             output_path = os.path.join(output_dir, sample + ".tbl")
 
-            # Step 1: Prodigal 翻译 DNA → 蛋白
+            # Step 1: Prodigal Translation of DNA → Protein
             run_prodigal(dna_path, protein_path)
 
-            # Step 2: 使用蛋白序列进行 HMM 搜索
+            # Step 2: HMM search using protein sequences
             run_hmmsearch(hmm_model, protein_path, output_path)
 
-    print("🎉 所有序列翻译与搜索完成！")
+    print("🎉 All sequence translations and searches completed！")
 
 if __name__ == "__main__":
     main()
