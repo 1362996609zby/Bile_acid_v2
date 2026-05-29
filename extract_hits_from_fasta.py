@@ -3,7 +3,7 @@
 import os
 from Bio import SeqIO
 
-def parse_tblout(tbl_file, evalue_threshold=1e-3):#官方手册建议阈值
+def parse_tblout(tbl_file, evalue_threshold=1e-3):#Official manual recommends thresholds
     hits = set()
     with open(tbl_file) as f:
         for line in f:
@@ -27,7 +27,7 @@ def extract_sequences(fasta_file, hit_ids, output_file):
             if record.id in hit_ids:
                 SeqIO.write(record, out_f, "fasta")
                 total += 1
-    print(f"✅ 提取 {os.path.basename(output_file)}: {total} hits")
+    print(f"✅ Extract {os.path.basename(output_file)}: {total} hits")
 
 def main():
     tbl_dir = "BaiE/hmmsearch"
@@ -43,13 +43,13 @@ def main():
             output_path = os.path.join(output_dir, genome_name + "_hits.fasta")
 
             if not os.path.exists(genome_path):
-                print(f"⚠️ 未找到对应基因组文件: {genome_path}")
+                print(f"⚠️ No corresponding genome file found: {genome_path}")
                 continue
 
             hit_ids = parse_tblout(tbl_path)
             extract_sequences(genome_path, hit_ids, output_path)
 
-    print("🎉 所有匹配序列提取完毕！")
+    print("🎉 All matching sequences have been extracted！")
 
 if __name__ == "__main__":
     main()
