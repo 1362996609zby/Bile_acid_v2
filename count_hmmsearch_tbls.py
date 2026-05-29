@@ -4,9 +4,9 @@
 import os
 import pandas as pd
 
-# ========= 用户参数 =========
+# ========= User parameters =========
 root_dir = os.getcwd()
-EVALUE_THRESHOLD = 1e-3   # <<< 关键修正：与 prior-check 一致
+EVALUE_THRESHOLD = 1e-3   # Threshold Filtering
 # ============================
 
 results = {}
@@ -18,7 +18,7 @@ for dirpath, dirnames, filenames in os.walk(root_dir):
 
         tbl_path = os.path.join(dirpath, fn)
 
-        # 第一层目录作为 gene_dir
+        # The first-level acts as gene_dir
         rel = os.path.relpath(tbl_path, root_dir)
         parts = rel.split(os.sep)
         if len(parts) < 2:
@@ -38,10 +38,10 @@ for dirpath, dirnames, filenames in os.walk(root_dir):
                     continue
                 fields = line.strip().split()
                 if len(fields) < 6:
-                    continue  # 非标准 tbl 行跳过
+                    continue  # Skip non-standard tbl lines
 
                 try:
-                    full_evalue = float(fields[4])  # HMMER tblout 第5列 = full-seq E-value
+                    full_evalue = float(fields[4])  # HMMER tblout column 5 = full-seq E-value
                 except:
                     continue
 
@@ -55,4 +55,4 @@ df = pd.DataFrame.from_dict(results, orient="index").fillna(0).astype(int)
 outname = f"hmmsearch_counts_E{EVALUE_THRESHOLD:.0e}.xlsx"
 df.to_excel(outname)
 
-print(f"✅ 统计完成（E-value ≤ {EVALUE_THRESHOLD}），结果保存在 {outname}")
+print(f"✅ Statistics completed（E-value ≤ {EVALUE_THRESHOLD}），The results are saved in {outname}")
