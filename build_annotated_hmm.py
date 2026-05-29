@@ -15,7 +15,7 @@ def parse_annotation_file(json_file):
     
     annotations = {}
 
-    if "features" in data:  # BaiA1格式
+    if "features" in data:  # Type I format
         seq_id = data.get("primaryAccession", "unknown")
         annotations[seq_id] = {"AS": [], "BS": []}
         for feature in data["features"]:
@@ -24,7 +24,7 @@ def parse_annotation_file(json_file):
             end = feature["location"]["end"]["value"]
             annotations[seq_id][label].extend(range(start, end + 1))
 
-    else:  # BaiB结构域预测样式
+    else:  # Type II format
         for domain_id, seq_map in data.items():
             for seq_id, marks in seq_map.items():
                 if seq_id not in annotations:
@@ -48,23 +48,23 @@ def write_sto_with_annotations(fasta_dict, annotation_dict, output_sto):
                         annot[pos - 1] = "*" if label == "AS" else "+"
                 out.write(f"#=GR {seq_id} {label} {''.join(annot)}\n")
         out.write("//\n")
-    print(f"✅ 已生成注释对齐文件: {output_sto}")
+    print(f"✅ Annotation alignment file has been generated: {output_sto}")
 
 def build_hmm(sto_file, hmm_file):
     cmd = ["hmmbuild", "--amino", hmm_file, sto_file]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(f"❌ hmmbuild failed:\n{result.stderr}")
-    print(f"✅ 已成功构建 HMM 模型: {hmm_file}")
+    print(f"✅ HMM model has been successfully built: {hmm_file}")
 
 def main():
-    # === 用户可自定义 ===
+    # === User-customizable ===
     fasta_file = "BSH_t/BSH_t_msa.fasta"
     json_files = ["BSH_t/BSH_t.json"]
     sto_output = "BSH_t/BSH_t_final.sto"
     hmm_output = "BSH_t/BSH_t_final.hmm"
 
-    # === 加载序列和注释 ===
+    # === Loading sequences and annotations ===
     seqs = load_fasta(fasta_file)
     all_annots = {}
 
@@ -76,11 +76,11 @@ def main():
             all_annots[sid]["AS"].extend(ann[sid]["AS"])
             all_annots[sid]["BS"].extend(ann[sid]["BS"])
 
-    # 去重
+    # Deduplication
     for sid in all_annots:
         all_annots[sid]["AS"] = sorted(set(all_annots[sid]["AS"]))
         all_annots[sid]["BS"] = sorted(set(all_annots[sid]["BS"]))
-    # ✅ 若没有注释文件，跳过注释加载
+    # ✅ If there is no comment file, skip loading the comment.
     if json_files:
         for jf in json_files:
             ann = parse_annotation_file(jf)
@@ -90,11 +90,11 @@ def main():
                 all_annots[sid]["AS"].extend(ann[sid]["AS"])
                 all_annots[sid]["BS"].extend(ann[sid]["BS"])
 
-    # 去重
+    # Deduplication
         for sid in all_annots:
             all_annots[sid]["AS"] = sorted(set(all_annots[sid]["AS"]))
             all_annots[sid]["BS"] = sorted(set(all_annots[sid]["BS"]))
-    # === 生成对齐注释并构建 HMM ===
+    # === Generate alignment annotations and build HMM ===
     write_sto_with_annotations(seqs, all_annots, sto_output)
     build_hmm(sto_output, hmm_output)
 
