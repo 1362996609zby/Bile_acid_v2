@@ -7,7 +7,7 @@ import subprocess
 from Bio import SeqIO
 from Bio.Seq import Seq
 
-# **1️⃣ 解析 *.json，提取关键位点**
+# **1️⃣ Parse *.json files and extract key sites**
 def parse_json(json_file):
     with open(json_file, "r") as f:
         data = json.load(f)
@@ -22,24 +22,24 @@ def parse_json(json_file):
 
     return sorted(set(key_sites))
 
-# **2️⃣ 确保核心序列 *_core 始终存在**
+# **2️⃣ Ensure the core sequence *_core always exists.**
 def ensure_core_sequence(core_fasta, output_fasta):
-    core_seq_record = list(SeqIO.parse(core_fasta, "fasta"))[0]  # 读取核心序列
+    core_seq_record = list(SeqIO.parse(core_fasta, "fasta"))[0]  # read the core sequence
 
-    # 读取当前文件的所有序列
+    # Read all sequences in the current file
     records = list(SeqIO.parse(output_fasta, "fasta"))
     record_ids = [record.id for record in records]
 
-    # 如果核心序列不在结果中，则添加
+    # If the core sequence is not in the results, add it.
     if core_seq_record.id not in record_ids:
-        print(f"⚠ 强制保留核心序列 {core_seq_record.id}")
+        print(f"⚠ Forced preservation of core sequences {core_seq_record.id}")
         records.append(core_seq_record)
 
-    # 重新写入文件，确保核心序列保留
+    # Rewrite the file to ensure the core sequence is preserved.
     with open(output_fasta, "w") as f:
         SeqIO.write(records, f, "fasta")
 
-# **3️⃣ 运行 BLAST**
+# **3️⃣ Run BLAST**
 def run_blast(query_fasta, db_fasta, output_file, output_dir):
     db_name = os.path.join(output_dir, "blast_db")
     
@@ -50,7 +50,7 @@ def run_blast(query_fasta, db_fasta, output_file, output_dir):
         "-out", output_file, "-evalue", "1e-5", "-max_target_seqs", "500", "-outfmt", "6"
     ])
 
-# **4️⃣ 过滤 BLAST 结果，并检查关键位点，同时强制保留核心序列**
+# **4️⃣ Filter the BLAST results and check key sites, while forcibly preserving the core sequence**
 def filter_blast_results(blast_output, db_fasta, key_sites, filtered_fasta, core_fasta):
     valid_ids = set()
     
@@ -67,12 +67,12 @@ def filter_blast_results(blast_output, db_fasta, key_sites, filtered_fasta, core
                 if all(seq[pos - 1].isupper() for pos in key_sites if pos - 1 < len(seq)):
                     SeqIO.write(record, f_out, "fasta")
                 else:
-                    print(f"⚠ 过滤掉 {record.id}，因为它缺少关键位点")
+                    print(f"⚠ Filter out {record.id}，because it lacks key sites")
 
     ensure_core_sequence(core_fasta, filtered_fasta)
-    print("✅ BLAST 结果检查完成，核心序列已保留")
+    print("✅ BLAST result check complete, core sequence preserved.")
 
-# **5️⃣ 运行 CD-HIT，并检查关键位点，同时强制保留核心序列**
+# **5️⃣ Run CD-HIT and check key sites while forcibly preserving the core sequence.**
 def run_cd_hit(input_fasta, output_fasta, key_sites, core_fasta):
     subprocess.run([
         "cd-hit", "-i", input_fasta, "-o", output_fasta, "-c", "0.95", "-n", "5", "-g", "1"
@@ -80,13 +80,13 @@ def run_cd_hit(input_fasta, output_fasta, key_sites, core_fasta):
 
     missing_sites = check_validity(output_fasta, key_sites)
     if missing_sites:
-        print(f"❌ CD-HIT 结果丢失关键位点 {sorted(missing_sites)}，终止执行！")
+        print(f"❌ CD-HIT results showed loss of key sites. {sorted(missing_sites)}，stop！")
         exit(1)
     
     ensure_core_sequence(core_fasta, output_fasta)
-    print("✅ CD-HIT 关键位点检查通过，核心序列已保留")
+    print("✅ CD-HIT key site check passed, core sequence preserved.")
 
-# **6️⃣ 运行 MUSCLE，并自动修复关键位点，同时强制保留核心序列**
+# **6️⃣ Run MUSCLE and automatically repair critical sites while forcibly preserving the core sequence**
 def run_muscle(input_fasta, output_fasta, key_sites, core_fasta):
     try:
         result = subprocess.run(["muscle", "-version"], capture_output=True, text=True)
@@ -95,21 +95,21 @@ def run_muscle(input_fasta, output_fasta, key_sites, core_fasta):
         else:  
             subprocess.run(["muscle", "-in", input_fasta, "-out", output_fasta])
         
-        print("✅ MUSCLE 运行成功")
+        print("✅ MUSCLE ran successfully")
 
         missing_sites = check_validity(output_fasta, key_sites)
         if missing_sites:
-            print(f"❌ MUSCLE 结果丢失关键位点 {sorted(missing_sites)}，尝试自动修复...")
+            print(f"❌ MUSCLE results show loss of key sites {sorted(missing_sites)}，attempt automatic repair...")
             recover_muscle_alignment(output_fasta, key_sites)
-            print("✅ 关键位点修复完成，已更新 MUSCLE 结果")
+            print("✅ Key site repair completed, MUSCLE results updated")
         
         ensure_core_sequence(core_fasta, output_fasta)
-        print("✅ MUSCLE 关键位点检查通过，核心序列已保留")
+        print("✅ The MUSCLE key site check passed, and the core sequence has been preserved")
 
     except Exception as e:
-        print(f"❌ MUSCLE 运行失败: {e}")
+        print(f"❌ MUSCLE failed: {e}")
         exit(1)
-# **7️⃣ 关键位点检查函数**
+# **7️⃣ Key site checking function**
 def check_validity(fasta_file, key_sites):
     missing_sites = set()
     for record in SeqIO.parse(fasta_file, "fasta"):
@@ -120,7 +120,7 @@ def check_validity(fasta_file, key_sites):
 
     return missing_sites
 
-# **8️⃣ 自动修复关键位点**
+# **8️⃣ Automatic repair of critical sites**
 def recover_muscle_alignment(msa_fasta, key_sites):
     records = list(SeqIO.parse(msa_fasta, "fasta"))
 
@@ -128,16 +128,16 @@ def recover_muscle_alignment(msa_fasta, key_sites):
         seq = list(str(record.seq))
         for pos in key_sites:
             if pos - 1 < len(seq) and seq[pos - 1] == "-":
-                seq[pos - 1] = "X"  # **替换回 "X" 作为占位符**
+                seq[pos - 1] = "X"  # **Replace "X" as a placeholder**
 
         record.seq = Seq("".join(seq))
 
     with open(msa_fasta, "w") as f:
         SeqIO.write(records, f, "fasta")
 
-    print("✅ 关键位点修复完成，已更新 MUSCLE 结果")
+    print("✅ Key site repair completed, MUSCLE results updated")
 
-# **9️⃣ 运行完整流程**
+# **9️⃣ Run the complete process**
 def main(input_dir, output_dir):
     os.makedirs(output_dir, exist_ok=True)
 
@@ -151,13 +151,13 @@ def main(input_dir, output_dir):
     muscle_output = os.path.join(output_dir, "BSH_t_msa.fasta")
 
     key_sites = parse_json(json_file)
-    print(f"🔍 关键位点: {key_sites}")
+    print(f"🔍 key sites: {key_sites}")
 
     run_blast(core_fasta, homolog_fasta, blast_output, output_dir)
-    print("✅ BLAST 完成")
+    print("✅ BLAST done")
 
     filter_blast_results(blast_output, homolog_fasta, key_sites, filtered_fasta, core_fasta)
-    print("✅ 过滤 BLAST 结果，保留关键位点")
+    print("✅ Filter BLAST results and retain key sites")
 
     run_cd_hit(filtered_fasta, cd_hit_output, key_sites, core_fasta)
 
