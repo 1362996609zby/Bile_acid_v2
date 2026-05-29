@@ -5,24 +5,24 @@ import subprocess
 from Bio import SeqIO
 from Bio.Seq import Seq
 
-# **1️⃣ 确保核心序列 *_core 始终存在**
+# **1️⃣ Ensure the core sequence *_core always exists**
 def ensure_core_sequence(core_fasta, output_fasta):
-    core_seq_record = list(SeqIO.parse(core_fasta, "fasta"))[0]  # 读取核心序列
+    core_seq_record = list(SeqIO.parse(core_fasta, "fasta"))[0]  # Read the core sequence
 
-    # 读取当前文件的所有序列
+    # Read all sequences in the current file
     records = list(SeqIO.parse(output_fasta, "fasta"))
     record_ids = [record.id for record in records]
 
-    # 如果核心序列不在结果中，则添加
+    # If the core sequence is not in the results, add it
     if core_seq_record.id not in record_ids:
         print(f"⚠ 强制保留核心序列 {core_seq_record.id}")
         records.append(core_seq_record)
 
-    # 重新写入文件，确保核心序列保留
+    # Rewrite the file to ensure the core sequence is preserved
     with open(output_fasta, "w") as f:
         SeqIO.write(records, f, "fasta")
 
-# **2️⃣ 运行 BLAST**
+# **2️⃣ Run BLAST**
 def run_blast(query_fasta, db_fasta, output_file, output_dir):
     db_name = os.path.join(output_dir, "blast_db")
     
@@ -33,7 +33,7 @@ def run_blast(query_fasta, db_fasta, output_file, output_dir):
         "-out", output_file, "-evalue", "1e-5", "-max_target_seqs", "500", "-outfmt", "6"
     ])
 
-# **3️⃣ 过滤 BLAST 结果，同时强制保留核心序列**
+# **3️⃣ Filter BLAST results while forcibly preserving the core sequence**
 def filter_blast_results(blast_output, db_fasta, filtered_fasta, core_fasta):
     valid_ids = set()
     
@@ -49,18 +49,18 @@ def filter_blast_results(blast_output, db_fasta, filtered_fasta, core_fasta):
                 SeqIO.write(record, f_out, "fasta")
 
     ensure_core_sequence(core_fasta, filtered_fasta)
-    print("✅ BLAST 结果检查完成，核心序列已保留")
+    print("✅ BLAST result check complete, core sequence preserved")
 
-# **4️⃣ 运行 CD-HIT，同时强制保留核心序列**
+# **4️⃣ Run CD-HIT while forcibly preserving the core sequence**
 def run_cd_hit(input_fasta, output_fasta, core_fasta):
     subprocess.run([
         "cd-hit", "-i", input_fasta, "-o", output_fasta, "-c", "0.95", "-n", "5", "-g", "1"
     ])
     
     ensure_core_sequence(core_fasta, output_fasta)
-    print("✅ CD-HIT 运行完成，核心序列已保留")
+    print("✅ CD-HIT has finished running; the core sequence has been preserved")
 
-# **5️⃣ 运行 MUSCLE，同时强制保留核心序列**
+# **5️⃣ Run MUSCLE while forcibly preserving the core sequence**
 def run_muscle(input_fasta, output_fasta, core_fasta):
     try:
         result = subprocess.run(["muscle", "-version"], capture_output=True, text=True)
@@ -69,16 +69,16 @@ def run_muscle(input_fasta, output_fasta, core_fasta):
         else:  
             subprocess.run(["muscle", "-in", input_fasta, "-out", output_fasta])
         
-        print("✅ MUSCLE 运行成功")
+        print("✅ MUSCLE done")
         
         ensure_core_sequence(core_fasta, output_fasta)
-        print("✅ MUSCLE 关键位点检查通过，核心序列已保留")
+        print("✅ MUSCLE key site check passed, and the core sequence has been preserved.")
 
     except Exception as e:
-        print(f"❌ MUSCLE 运行失败: {e}")
+        print(f"❌ MUSCLE failed: {e}")
         exit(1)
 
-# **6️⃣ 运行完整流程**
+# **6️⃣ Run the complete process**
 def main(input_dir, output_dir):
     os.makedirs(output_dir, exist_ok=True)
 
@@ -91,7 +91,7 @@ def main(input_dir, output_dir):
     muscle_output = os.path.join(output_dir, "BaiN_msa.fasta")
 
     run_blast(core_fasta, homolog_fasta, blast_output, output_dir)
-    print("✅ BLAST 完成")
+    print("✅ BLAST done")
 
     filter_blast_results(blast_output, homolog_fasta, filtered_fasta, core_fasta)
 
